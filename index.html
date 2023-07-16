@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Battery Percentage Detector</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            background-color: #f2f2f2;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s ease-in-out;
+        }
+
+        body.dark-mode {
+            background-color: #333;
+            color: #fff;
+        }
+
+        .container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        .battery {
+            position: relative;
+            width: 120px;
+            height: 200px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease-in-out;
+        }
+
+        .battery:before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 100%;
+            height: 180px;
+            background-color: #ddd;
+            z-index: -1;
+            transition: background-color 0.3s ease-in-out;
+        }
+
+        .battery .level {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            width: 100%;
+            height: 0;
+            background-color: #4CAF50;
+            transition: height 0.3s ease-in-out;
+        }
+
+        .battery .percentage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            font-weight: bold;
+            transition: color 0.3s ease-in-out;
+        }
+
+        .battery.low:before {
+            background-color: #F44336;
+        }
+
+        .battery.low .level {
+            background-color: #F44336;
+        }
+
+        .battery.mid:before {
+            background-color: #FFC107;
+        }
+
+        .battery.mid .level {
+            background-color: #FFC107;
+        }
+
+        .battery.high:before {
+            background-color: #4CAF50;
+        }
+
+        .battery.high .level {
+            background-color: #4CAF50;
+        }
+
+        .battery .charge-animation {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0;
+            background-color: rgba(0, 0, 0, 0.1);
+            transition: height 0.5s ease-in-out;
+            animation: charge-pulse 2s infinite;
+        }
+
+        @keyframes charge-pulse {
+            0% {
+                height: 0;
+            }
+            50% {
+                height: 100%;
+            }
+            100% {
+                height: 0;
+            }
+        }
+
+        #status {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            transition: color 0.3s ease-in-out;
+        }
+
+        .dark-mode-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease-in-out;
+        }
+
+        .dark-mode-button:hover {
+            background-color: #222;
+        }
+    </style>
+</head>
+<body>
+    <button class="dark-mode-button" id="darkModeButton">Toggle Dark Mode</button>
+
+    <div class="container">
+        <div class="battery">
+            <div class="level"></div>
+            <div class="percentage">0%</div>
+            <div class="charge-animation"></div>
+        </div>
+        <p id="status"></p>
+    </div>
+
+    <script>
+        function updateBatteryPercentage() {
+            navigator.getBattery().then(function(battery) {
+                var percentage = Math.floor(battery.level * 100);
+                var level = document.querySelector('.level');
+                var percentageText = document.querySelector('.percentage');
+                var batteryElement = document.querySelector('.battery');
+                var chargeAnimation = document.querySelector('.charge-animation');
+
+                level.style.height = percentage + '%';
+                percentageText.textContent = percentage + '%';
+
+                // Update battery status class based on percentage
+                batteryElement.classList.remove('low', 'mid', 'high');
+                if (percentage < 20) {
+                    batteryElement.classList.add('low');
+                    showBatteryStatus('low');
+                } else if (percentage < 50) {
+                    batteryElement.classList.add('mid');
+                    showBatteryStatus('mid');
+                } else {
+                    batteryElement.classList.add('high');
+                    showBatteryStatus('high');
+                }
+
+                // Toggle charge animation based on charging state
+                if (battery.charging) {
+                    chargeAnimation.style.animationPlayState = 'running';
+                } else {
+                    chargeAnimation.style.animationPlayState = 'paused';
+                }
+            });
+        }
+
+        function showBatteryStatus(status) {
+            var statusText = '';
+            switch (status) {
+                case 'low':
+                    statusText = 'Your battery is low.';
+                    break;
+                case 'mid':
+                    statusText = 'Your battery is at a medium level.';
+                    break;
+                case 'high':
+                    statusText = 'Your battery is high.';
+                    break;
+            }
+            document.getElementById('status').textContent = statusText;
+        }
+
+        function toggleDarkMode() {
+            var body = document.querySelector('body');
+            body.classList.toggle('dark-mode');
+
+            var percentageText = document.querySelector('.percentage');
+            if (body.classList.contains('dark-mode')) {
+                percentageText.style.color = '#fff'; // Set white text color in dark mode
+            } else {
+                percentageText.style.color = '#000'; // Set black text color in light mode
+            }
+        }
+
+        // Wait for the DOM to load before updating battery percentage
+        document.addEventListener('DOMContentLoaded', function() {
+            updateBatteryPercentage();
+
+            // Update battery percentage on battery level change
+            navigator.getBattery().then(function(battery) {
+                battery.addEventListener('levelchange', function() {
+                    updateBatteryPercentage();
+                });
+            });
+
+            // Update battery percentage on charging state change
+            navigator.getBattery().then(function(battery) {
+                battery.addEventListener('chargingchange', function() {
+                    updateBatteryPercentage();
+                });
+            });
+
+            // Dark mode button event listener
+            var darkModeButton = document.getElementById('darkModeButton');
+            darkModeButton.addEventListener('click', function() {
+                toggleDarkMode();
+            });
+        });
+    </script>
+</body>
+  <p>Source code of this project: <a href="https://github.com/CoderSensui/Battery-Percentage-Detector">GITHUB</a></p>
+  </html>
+  
